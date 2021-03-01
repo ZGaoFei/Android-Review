@@ -353,7 +353,7 @@ HashMap 基于 hashing 原理，我们通过 put() 和 get() 方法储存和获�
 默认的负载因子大小为 0.75，也就是说，当一个 map 填满了 75% 的 bucket 时候，和其它集合类(如 ArrayList 等)一样，将会创建原来 HashMap 大小的两倍的 bucket 数组，来重新调整 map 的大小，并将原来的对象放入新的 bucket 数组中。这个过程叫作 rehashing，因为它调用 hash 方法找到新的 bucket 位置。
 
 **为什么 String, Interger 这样的 wrapper 类适合作为键?**  
-因为 String 是不可变的，也是 final 的，而且已经重写了 equals() 和 hashCode() 方法了。其他的 wrapper 类也有这个特点。不可变性是必要的，因为为了要计算 hashCode()，就要防止键值改变，如果键值在放入时和获取时返回不同的 hashcode 的话，那么就不能从 HashMap 中找到你想要的对象。不可变性还有其他的优点如线程安全。如果你可以仅仅通过将某个 field 声明成 final 就能保证 hashCode 是不变的，那么请这么做吧。因为获取对象的时候要用到 equals() 和 hashCode() 方法，那么键对象正确的重写这两个方法是非常重要的。如果两个不相等的对象返回不同的 hashcode 的话，那么碰撞的几率就会小些，这样就能提高 HashMap 的性能。
+因为 String 是不可变的，也是 final 的，而且已经重写了 equals() 和 hashCode() 方法了。其他的 wrapper（包装） 类也有这个特点。不可变性是必要的，因为为了要计算 hashCode()，就要防止键值改变，如果键值在放入时和获取时返回不同的 hashcode 的话，那么就不能从 HashMap 中找到你想要的对象。不可变性还有其他的优点如线程安全。如果你可以仅仅通过将某个 field 声明成 final 就能保证 hashCode 是不变的，那么请这么做吧。因为获取对象的时候要用到 equals() 和 hashCode() 方法，那么键对象正确的重写这两个方法是非常重要的。如果两个不相等的对象返回不同的 hashcode 的话，那么碰撞的几率就会小些，这样就能提高 HashMap 的性能。
 
 ### HashMap 与 HashTable 对比
 HashMap 是非 synchronized 的，性能更好，HashMap 可以接受为 null 的 key-value，而 Hashtable 是线程安全的，比 HashMap 要慢，不接受 null 的 key-value。
@@ -771,28 +771,58 @@ public class CustomManager{
 
 缺点在于无法传递参数，如Context等
 
+```
+枚举实现
+enum SingleInstance04 {
+    INSTANCE;
+}
+```
+
+```
+破坏单例的方式
+1、反射
+2、序列化
+3、克隆
+
+解决方案如下：
+1、防止反射
+  定义一个全局变量，当第二次创建的时候抛出异常
+2、防止克隆破坏
+   重写clone(),直接返回单例对象
+3、防止序列化破坏
+  添加readResolve(),返回Object对象
+```
+
 # 线程
+补充在【多线程.md】
+
 线程是进程中可独立执行的最小单位，也是 CPU 资源（时间片）分配的基本单位。同一个进程中的线程可以共享进程中的资源，如内存空间和文件句柄。
 
 ## 属性
-| 属性 | 说明 
-|--|--
-| id | 线程 id 用于标识不同的线程。编号可能被后续创建的线程使用。编号是只读属性，不能修改
-| name | 名字的默认值是 Thread-(id)
-| daemon | 分为守护线程和用户线程，我们可以通过 setDaemon(true) 把线程设置为守护线程。守护线程通常用于执行不重要的任务，比如监控其他线程的运行情况，GC 线程就是一个守护线程。setDaemon() 要在线程启动前设置，否则 JVM 会抛出非法线程状态异常，可被继承。
-| priority | 线程调度器会根据这个值来决定优先运行哪个线程（不保证），优先级的取值范围为 1~10，默认值是 5，可被继承。Thread 中定义了下面三个优先级常量：<br>- 最低优先级：MIN_PRIORITY = 1<br>- 默认优先级：NORM_PRIORITY = 5<br>- 最高优先级：MAX_PRIORITY = 10
+| 属性 | 说明 |
+| ---- | ---- |
+| id   | 线程 id 用于标识不同的线程。编号可能被后续创建的线程使用。编号是只读属性，不能修改 |
+| name | 名字的默认值是 Thread-(id) |
+| daemon | 分为守护线程和用户线程，我们可以通过 setDaemon(true) 把线程设置为守护线程。守护线程通常用于执行不重要的任务，比如监控其他线程的运行情况，GC 线程就是一个守护线程。setDaemon() 要在线程启动前设置，否则 JVM 会抛出非法线程状态异常，可被继承。 |
+| priority | 线程调度器会根据这个值来决定优先运行哪个线程（不保证），优先级的取值范围为 1~10，默认值是 5，可被继承。 |
+
+Thread 中定义了下面三个优先级常量：
+
+- 最低优先级：MIN_PRIORITY = 1
+- 默认优先级：NORM_PRIORITY = 5
+- 最高优先级：MAX_PRIORITY = 10
 
 ## 状态
 ![](https://pic2.zhimg.com/80/v2-326a2be9b86b1446d75b6f52f54c98fb_hd.jpg)
 
-| 状态 | 说明 
-|--|--
-| New | 新创建了一个线程对象，但还没有调用start()方法。
-| Runnable | Ready 状态 线程对象创建后，其他线程(比如 main 线程）调用了该对象的 start() 方法。该状态的线程位于可运行线程池中，等待被线程调度选中 获取 cpu 的使用权。Running 绪状态的线程在获得 CPU 时间片后变为运行中状态（running）。
-| Blocked | 线程因为某种原因放弃了cpu 使用权（等待锁），暂时停止运行
-| Waiting | 线程进入等待状态因为以下几个方法：<br>- Object#wait()<br>- Thread#join()<br>- LockSupport#park()
-| Timed Waiting | 有等待时间的等待状态。
-| Terminated | 表示该线程已经执行完毕。
+| 状态 | 说明 |
+|--|--|
+| New | 新创建了一个线程对象，但还没有调用start()方法。|
+| Runnable | Ready 状态 线程对象创建后，其他线程(比如 main 线程）调用了该对象的 start() 方法。该状态的线程位于可运行线程池中，等待被线程调度选中 获取 cpu 的使用权。Running 就绪状态的线程在获得 CPU 时间片后变为运行中状态（running）。 |
+| Blocked | 线程因为某种原因放弃了cpu 使用权（等待锁），暂时停止运行|
+| Waiting | 线程进入等待状态因为以下几个方法：Object#wait()、Thread#join()、LockSupport#park() |
+| Timed Waiting | 有等待时间的等待状态。|
+| Terminated | 表示该线程已经执行完毕。|
 
 ## 状态控制
 - wait() / notify() / notifyAll()
@@ -800,11 +830,11 @@ public class CustomManager{
 
 ``wait()``，``notify()``，``notifyAll()`` 是定义在Object类的实例方法，用于控制线程状态，三个方法都必须在synchronized 同步关键字所限定的作用域中调用，否则会报错 ``java.lang.IllegalMonitorStateException``。
 
-| 方法 | 说明
-|--|--
-| ``wait()`` | 线程状态由 的使用权。Running 变为 Waiting, 并将当前线程放入等待队列中
-| ``notify()`` | notify() 方法是将等待队列中一个等待线程从等待队列移动到同步队列中
-| ``notifyAll() `` | 则是将所有等待队列中的线程移动到同步队列中
+| 方法 | 说明|
+|--|--|
+| ``wait()`` | 线程状态由 的使用权。Running 变为 Waiting, 并将当前线程放入等待队列中|
+| ``notify()`` | notify() 方法是将等待队列中一个等待线程从等待队列移动到同步队列中|
+| ``notifyAll() `` | 则是将所有等待队列中的线程移动到同步队列中|
 
 被移动的线程状态由 Running 变为 Blocked，notifyAll 方法调用后，等待线程依旧不会从 wait() 返回,需要调用 notify() 或者 notifyAll() 的线程释放掉锁后，等待线程才有机会从 wait() 返回。
 
@@ -840,6 +870,7 @@ Monitor 是线程私有的数据结构，每一个线程都有一个可用 monit
 
 ## 根据获取的锁分类
 **获取对象锁**
+
 - synchronized(this|object) {}  
 - 修饰非静态方法  
 
@@ -865,13 +896,12 @@ public interface Lock {
     Condition newCondition();
 }
 ```
-| 方法 | 说明
-|--|--
-| ``lock()`` | 用来获取锁，如果锁被其他线程获取，处于等待状态。如果采用 Lock，必须主动去释放锁，并且在发生异常时，不会自动释放锁。因此一般来说，使用Lock必须在 try{}catch{} 块中进行，并且将释放锁的操作放在finally块中进行，以保证锁一定被被释放，防止死锁的发生。
-| ``lockInterruptibly()`` | 通过这个方法去获取锁时，如果线程正在等待获取锁，则这个线程能够响应中断，即中断线程的等待状态。
-| ``tryLock()`` | tryLock 方法是有返回值的，它表示用来尝试获取锁，如果获取成功，则返回 true，如果获取失败（即锁已被其他线程获取），则返回 false，也就说这个方法无论如何都会立即返回。在拿不到锁时不会一直在那等待。
-| ``tryLock(long，TimeUnit)`` | 与 tryLock 类似，只不过是有等待时间，在等待时间内获取到锁返回 true，超时返回 false。
-
+| 方法 | 说明 |
+|----|:----|
+| ``lock()`` | 用来获取锁，如果锁被其他线程获取，处于等待状态。如果采用 Lock，必须主动去释放锁，并且在发生异常时，不会自动释放锁。因此一般来说，使用Lock必须在 try{}catch{} 块中进行，并且将释放锁的操作放在finally块中进行，以保证锁一定被被释放，防止死锁的发生。|
+| ``lockInterruptibly()`` | 通过这个方法去获取锁时，如果线程正在等待获取锁，则这个线程能够响应中断，即中断线程的等待状态。|
+| ``tryLock()`` | tryLock 方法是有返回值的，它表示用来尝试获取锁，如果获取成功，则返回 true，如果获取失败（即锁已被其他线程获取），则返回 false，也就说这个方法无论如何都会立即返回。在拿不到锁时不会一直在那等待。|
+| ``tryLock(long，TimeUnit)`` | 与 tryLock 类似，只不过是有等待时间，在等待时间内获取到锁返回 true，超时返回 false。|
 
 ## 锁的分类
 ![](https://user-gold-cdn.xitu.io/2019/6/18/16b69b50c9d340a5?w=1372&h=1206&f=png&s=142754)
@@ -899,8 +929,8 @@ public interface Lock {
 强引用 > 软引用 > 弱引用 
 
 | 引用类型 | 说明 |
-|------|------|
-| StrongReferenc（强引用）| 当一个对象具有强引用，那么垃圾回收器是绝对不会的回收和销毁它的，**非静态内部类会在其整个生命周期中持有对它外部类的强引用**|
+|------|:-----|
+| StrongReference（强引用） | 当一个对象具有强引用，那么垃圾回收器是绝对不会回收和销毁它的，**非静态内部类会在其整个生命周期中持有对它外部类的强引用** |
 | WeakReference （弱引用）| 在垃圾回收器运行的时候，如果对一个对象的所有引用都是弱引用的话，该对象会被回收 |
 | SoftReference（软引用）| 如果一个对象只具有软引用，若内存空间足够，垃圾回收器就不会回收它；如果内存空间不足了，才会回收这些对象的内存|
 | PhantomReference（虚引用） | 一个只被虚引用持有的对象可能会在任何时候被 GC 回收。虚引用对对象的生存周期完全没有影响，也无法通过虚引用来获取对象实例，仅仅能在对象被回收时，得到一个系统通知（只能通过是否被加入到 ReferenceQueue 来判断是否被GC，这也是唯一判断对象是否被 GC 的途径）。|
@@ -1086,11 +1116,11 @@ public static byte[] generateProxyClass(final String name,
 # 元注解
 @Retention：保留的范围，可选值有三种。
 
-| RetentionPolicy | 说明
-|----|----
-| SOURCE | 注解将被编译器丢弃（该类型的注解信息只会保留在源码里，源码经过编译后，注解信息会被丢弃，不会保留在编译好的class文件里），如 @Override
-| CLASS | 注解在class文件中可用，但会被 VM 丢弃（该类型的注解信息会保留在源码里和 class 文件里，在执行的时候，不会加载到虚拟机中），请注意，当注解未定义 Retention 值时，默认值是 CLASS。
-| RUNTIME | 注解信息将在运行期 (JVM) 也保留，因此可以通过反射机制读取注解的信息（源码、class 文件和执行的时候都有注解的信息），如 @Deprecated
+| RetentionPolicy | 说明 |
+|------|:-----|
+| SOURCE | 注解将被编译器丢弃（该类型的注解信息只会保留在源码里，源码经过编译后，注解信息会被丢弃，不会保留在编译好的class文件里），如 @Override|
+| CLASS | 注解在class文件中可用，但会被 VM 丢弃（该类型的注解信息会保留在源码里和 class 文件里，在执行的时候，不会加载到虚拟机中），请注意，当注解未定义 Retention 值时，默认值是 CLASS。|
+| RUNTIME | 注解信息将在运行期 (JVM) 也保留，因此可以通过反射机制读取注解的信息（源码、class 文件和执行的时候都有注解的信息），如 @Deprecated|
 
 @Target：可以用来修饰哪些程序元素，如 TYPE, METHOD, CONSTRUCTOR, FIELD, PARAMETER等，未标注则表示可修饰所有
 
