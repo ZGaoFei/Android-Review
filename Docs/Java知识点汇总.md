@@ -108,22 +108,22 @@ Java堆是垃圾收集器管理的主要区域，从内存回收的角度来看�
 既然运行时常量池是方法区的一部分，自然受到方法区内存的限制，当常量池无法再申请到内存时就会抛出 OutOfMemoryError 异常。
 
 ## 方法指令
-| 指令 | 说明                      
+| 指令 | 说明|
 |----------|-----|
 | invokeinterface | 用以调用接口方法 |
 | invokevirtual | 指令用于调用对象的实例方法 |
 | invokestatic | 用以调用类/静态方法 |
-| invokespecial | 用于调用一些需要特殊处理的实例方法，包括实例初始化方法、私有方法和父类方法 | 
+| invokespecial | 用于调用一些需要特殊处理的实例方法，包括实例初始化方法、私有方法和父类方法 |
 
 ## 类加载器
-| 类加载器 | 说明                      
-|----------|-----|
+| 类加载器 | 说明|
+|----------|:-----|
 | BootstrapClassLoader | Bootstrap 类加载器负责加载 rt.jar 中的 JDK 类文件，它是所有类加载器的父加载器。Bootstrap 类加载器没有任何父类加载器，如果你调用 String.class.getClassLoader()，会返回 null，任何基于此的代码会抛出 NUllPointerException 异常。Bootstrap 加载器被称为初始类加载器 |
 | ExtClassLoader | 而 Extension 将加载类的请求先委托给它的父加载器，也就是Bootstrap，如果没有成功加载的话，再从 jre/lib/ext 目录下或者 java.ext.dirs 系统属性定义的目录下加载类。Extension 加载器由 sun.misc.Launcher$ExtClassLoader 实现 |
 | AppClassLoader | 第三种默认的加载器就是 System 类加载器（又叫作 Application 类加载器）了。它负责从 classpath 环境变量中加载某些应用相关的类，classpath 环境变量通常由 -classpath 或 -cp 命令行选项来定义，或者是 JAR 中的 Manifest 的 classpath 属性。Application 类加载器是 Extension 类加载器的子加载器 |
 
-| 工作原理 | 说明                      
-|----------|------|
+| 工作原理 | 说明|
+|----------|:------|
 | 委托机制 | 加载任务委托交给父类加载器，如果不行就向下传递委托任务，由其子类加载器加载，保证 java 核心库的安全性 |
 | 可见性机制 | 子类加载器可以看到父类加载器加载的类，而反之则不行 |
 | 单一性机制 | 父加载器加载过的类不能被子加载器加载第二次 |
@@ -306,7 +306,7 @@ public int hashCode() {
 | NumberFormatException | SecurityException | UnsupportedOperationException |
 | 常见的检查性异常 |  |
 | IOException | CloneNotSupportedException | IllegalAccessException |
-| NoSuchFieldException | NoSuchMethodException | FileNotFoundException
+| NoSuchFieldException | NoSuchMethodException | FileNotFoundException |
 
 # 内部类
 - 非静态内部类没法在外部类的静态方法中实例化。
