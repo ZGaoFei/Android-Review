@@ -1,0 +1,274 @@
+=========================Android系统启动流程======================
+Android系统启动流程：
+	init进程：init是所有Linux程序的起点，是Zygote的父进程。解析init.rc文件孵化出Zygote进程
+	Zygote进程：Zygote是所有Java进程的父进程，所有的APP进程都是由Zygote进程fork生成的。
+	SystemServer进程：SystemServer是Zygote孵化的第一个进程。SystemServer负责启动和管理整个Java Framework，包含AMS、PMS（PackageManagerService）等服务
+	Launcher：Zygote进程孵化的第一个APP进程
+	
+	1、启动电源以及系统启动
+		当电源按下时【引导芯片】代码开始从【预定义】的地方（固化在ROM）开始执行。加载【引导程序BootLoader】到RAM，然后执行。
+	2、引导程序BootLoader
+		【引导程序BootLoader】是在Android操作系统开始运行前的一个小程序，它的主要作用是把系统OS拉起来并运行。
+	3、Linux内核启动
+		内核启动时，设置缓存、被保护存储器、计划列表、加载驱动。当内核完成系统设置，它首先在系统文件中寻找【init.rc】文件，
+		并启动【init进程】
+	4、init进程启动
+		初始化和启动属性服务，并且启动【Zygote进程】
+	5、Zygote进程启动
+		创建【JavaVM】并为JavaVM注册JNI，创建服务端Socket，OS层采用Socket进行IPC通信，启动【SystemServer进程】。
+	6、SystemServer进程启动
+		启动【Binder线程池】和【SystemServiceManager】，并且启动各种系统服务。
+	7、Launcher启动
+		被【SystemServer进程】启动的【ActivityManagerService】会启动【Launcher】，【Launcher】启动后会将已安装应用的快捷图标显示到界面上。
+	
+
+=========================Activity启动流程======================
+
+Activity
+
+ActivityThread
+	运行在UI线程，APP的真正入口。一个ActivityThread对应于一个进程，每个应用程序的入口是该类中的main()函数
+	
+H：Handler
+	APP进程的跨线程通信。ApplicationThread接收AMS的消息后，通过H传递到APP进程。
+
+ActivityManager（AM）
+ActivityManagerNative（低版本）（AMN）
+	app进程通过ActivityManager.getService() 或者 ActivityManagerNative.getDefault() 获取 IActivityManager 来调用系统进程AMS中的方法。
+	ActivityManagerNative运行在Server端，实现了Binder类，具体功能有子类AMS实现。
+
+IActivityManager
+	ActivityManagerService在app进程的binder代理对象，抽象出跨进程通信需要实现的功能。
+
+ActivityManagerService（AMS）
+	运行在system_server中，AMN的子类，负责管理四大组件和进程，包括生命周期和状态切换。
+
+ActivityManagerProxy（AMP）
+	AMS的Client端代理，AMP和AMS通过binder通信
+
+Instrumentation
+	仪表盘，负责调用Activity和Application生命周期。该类用于具体操作某个Activity的功能，单向调用AMS以及统计、测量该应用程序的所有开销。
+	一个Instrumentation类对应于一个进程。每个Activity内部都有一个该Instrumentation对象的引用。
+
+ActivityStack
+	Activity在AMS的栈管理，用来记录以及启动的Activity的先后关系，状态信息等。通过ActivityStack决定是否需要启动新的进程。
+
+ActivitySupervisor
+	管理Activity任务栈
+
+ActivityStackSupervisor
+	负责所有Activity栈的管理。内部管理了mHomeStack、mFocusedStack和mLastFocusedStack三个Activity栈。
+	其中，mHomeStack管理的是Launcher相关的Activity栈；
+	mFocusedStack管理的是当前显示在前台Activity的Activity栈；
+	mLastFocusedStack管理的是上一次显示在前台Activity的Activity栈。
+
+Application
+
+ApplicationThread（AT）
+	ActivityThread的内部类，是ApplicationThreadProxy的具体实现，用于接受从AMS传递过来的消息。
+
+ApplicationThreadProxy（ATP）
+	ApplicationThread在服务端的代理。AMS通过该代理与ActivityThread进行通信。
+
+
+Activity启动流程：
+	a、Launcher启动Activity
+		1、Launcher通知AMS要启动新的Activity（Launcher进程中）
+		2、AMS先校验一下Activity的正确性，如果正确的话，会暂存一下Activity的信息。然后，AMS通知Launcher进程pause Activity（AMS进程）
+		3、Launcher pause Activity，并通知AMS已经paused（Launcher进程）
+		4、AMS检查Activity所在进程是否存在（AMS进程）
+			如果存在，直接通知这个进程，在该进程中启动Activity
+			不存在，会调用Process.start创建一个新进程
+		5、创建ActivityThread，执行一些初始化操作，并绑定Application。如果Application不存在，
+		会调用LoadedApk.makeApplication创建一个新的Application对象。之后进入Loop循环。（新创建的APP进程）
+		6、处理新的应用进程发出的创建进程完成的通信请求，并通知新应用进程启动目标Activity组件（AMS进程）
+		7、加载MainActivity类，调用onCreate声明周期方法（新创建的APP进程）
+		
+		简化后：
+		1、请求执行启动Activity
+		2、AMS接收启动Activity的请求
+		3、执行栈顶Activity的onPause()
+		4、启动Activity所属的应用进程
+		5、执行启动Activity
+		6、栈顶Activity执行onStop()
+	
+	b、其他Activity启动当前Activity（同一个进程内）
+		1、请求执行启动Activity
+		2、AMS接收启动Activity的请求
+		3、执行栈顶Activity的onPause()
+		4、执行启动Activity
+		5、栈顶Activity执行onStop()
+		
+	c、整体方法调用流程（以这个为准）
+		1、Launcher通知AMS要启动新的Activity（Launcher进程中）
+		2、AMS先校验一下Activity的正确性，如果正确的话，会暂存一下Activity的信息。然后，AMS通知Launcher进程pause Activity（AMS进程）
+		3、Launcher pause Activity，并通知AMS已经paused（Launcher进程）
+		4、AMS检查Activity所在进程是否存在（AMS进程）
+			如果存在，直接通知这个进程，在该进程中启动Activity
+			不存在，会调用Process.start创建一个新进程
+		5、Process.start会创建一个新进程，并导入ActivityThread类，执行入口main()方法
+		6、main()中调用Looper.prepareMainLooper()，然后ActivityThread.attach()，最后Looper.loop()开始遍历消息
+		7、ActivityThread.attach()中会获取IActivityManager，然后执行IActivityManager.attachApplication()，将ApplicationThread与IActivityManager建立连接，
+			用于ApplicationThread和ActivityManagerService进行通信。
+		8、ActivityThread.attach()接着会初始化Instrumentation
+		9、ActivityManagerService发消息给ApplicationThread进行创建Activity，调用ApplicationThread.scheduleLaunchActivity()
+		10、通过Handler消息机制调用handleLaunchActivity()
+		
+	注意：
+		1、startActivity()最后都会调用startActivityForResult()
+		2、AMS是通过socket与Zygote进程进行通信的。
+		3、AMS将执行创建Activity的通知告诉ActivityThread，然后通过反射机制创建出Activity对象，并执行Activity的onCreate()、onStart()、onResume()方法
+			通过mInstrumentation.newActivity()方法创建的Activity
+			Activity的生命周期方法是同Instrumentation类调用callActivityOn***()方法最终调用Activity的onCreate()等方法，这些方法会调用scheduleTraversals
+			调用时机为ActivityThread.performLaunchActivity()
+		4、ActivityThread执行完onResume()之后，会告诉AMS执行完onResume()了，然后执行栈顶Activity的onStop()
+		5、执行handleResumeActivity()（即onResume()）方法之后系统开始获取DecorView，执行addView()方法，最终调用ViewRootImpl.performTraversals()
+		6、ActivityThread的main()方法是在生成一个新的APP进程过程中调用的，具体是通过与Zygote通信，之后通过RuntimeInit类采用反射的方式调用ActivityThread.main()方法
+		7、ActivityThread执行performLaunchActivity()时，执行activity.attach()，在activity.attach()方法里面创建的PhoneWindow
+
+
+=========================触发刷新的过程======================
+
+ViewRootImpl、Window（PhoneWindow）、DecorView之间绑定和触发刷新的过程
+
+	DecorView
+		所有布局的根布局，包含TitleView（ActionBar）和ContentView，如果Activity设置FEATURE_NO_TITLE，则只包含ContentView一个子View
+
+	Window（PhoneWindow）
+
+	WindowManager
+		继承ViewManager，本身也是一个接口，负责管理Window，实际是管理PhoneWindow里面的DecorView，
+		最后的实现者是WindowManagerImpl，WindowManagerImpl没有直接实现操作View的相关方法，而是交给了WindowManagerGlobal来处理。
+	
+	WindowManagerGlobal
+		单例类，
+		通过getWindowManagerService()来获取WindowManagerService的客户端实现对象IWindowManager
+
+	WindowManagerService
+	
+	方法调用流程：
+	activityThread.handleLaunchActivity()
+		->activityThread.performLaunchActivity()
+		->activity.attach()->activity.onCreate()
+		->activityThread.handleResumeActivity()
+		->activityThread.performResumeActivity()
+		->activity.onResume()
+		->windowManager.addView()
+	0、ActivityThread.handleLaunchActivity()会调用activityThread.performLaunchActivity()
+	1、在activityThread.performLaunchActivity()中会调用mInstrumentation.newActivity()方法
+	2、mInstrumentation.newActivity()通过反射的方式创建一个新的Activity，
+	3、再在makeApplication()通过mActivityThread.mInstrumentation.newApplication()通过反射的方式创建一个Application
+	4、mActivityThread.mInstrumentation.newApplication()通过LoadedApk.getAppFactory()方法获取AppComponentFactory，工厂模式
+	5、然后makeApplication()中通过instrumentation.callApplicationOnCreate()调用application.onCreate()
+	6、activityThread.performLaunchActivity()中接着调用activity.attach()方法
+	7、activity.attach()方法里面创建了PhoneWindow
+	8、activityThread.performLaunchActivity()接着执行mInstrumentation.callActivityOnCreate()方法，执行了activity.onCreate()
+	9、在Activity在执行onCreate的时候会调用setContentView()，实际是getWindow().setContentView()，在这个方法中会去初始化DecorView以及TitleView和mContentParent，
+		并将TitleView和mContentParent添加到DecorView中
+	10、activityThread.handleResumeActivity()会调用activityThread.performResumeActivity()，在activityThread.performResumeActivity()中会调用activity.onResume()，
+	11、activityThread.handleResumeActivity()会先设置DecorView为INVISIBLE，然后会将DecorView通过windowManager.addView()绑定一起，然后再调用activity.makeVisible()显示DecorView
+	12、windowManager.addView()实际调用的WindowManagerImpl.addView()方法，WindowManagerImpl.addView()方法中调用WindowManagerGlobal.addView()方法
+	13、WindowManagerGlobal.addView()中会创建ViewRootImpl，然后通过ViewRootImpl.setView()将DecorView传入，然后调用view.assignParent(this)，DecorView将mParent指向为ViewRootImpl
+	14、ViewRootImpl.setView()内部的执行过程为：
+		viewRootImp.setView()
+		->viewRootImp.requestLayout()
+		->viewRootImp.scheduleTraversals()
+		->viewRootImp.doTraversal()
+		->viewRootImp.performTraversals()
+		->进入View的绘制流程
+
+
+=========================View的绘制流程======================
+
+View的绘制流程
+
+View
+	在View调用相关刷新的方法时（invalidate()、requestLayout()等），会请求parent Layout对应的方法，View的父View为ViewGroup，
+	因此会调用ViewGroup对应的方法（通过直接调用或者遍历找到最终的父类），所有View的最终父类是ViewRootImpl，ViewRootImpl与
+	View进行绑定是在Activity的onResume()之后WindowManager.addView()中处理的。
+	
+
+ViewRootImpl				ViewParent
+	所有View或者ViewGroup最终的父类，用于发起视图树的测量、布局、绘制的起点。所有View发起的刷新最终都会走到ViewRootImpl的
+	invalidateChild()、invalidateChildInParent()、requestLayout()、requestChildFocus()等方法，这些方法会调用scheduleTraversals()
+	方法。
+	scheduleTraversals()：
+		1、设置mTraversalScheduled=true，表示当前帧已有刷新请求
+		2、发送同步消息屏障，用于消息队列能及时处理异步刷新消息
+		3、mChoreographer发送callbackType=CALLBACK_TRAVERSAL类型的屏幕刷新消息，并将TraversalRunnable传递到Choreographer中
+	
+	Choreographer调用postCallback()发送callbackType=CALLBACK_TRAVERSAL类型的消息，同时在mCallbackQueues中对应于CALLBACK_TRAVERSAL的队列，
+	将TraversalRunnable保存到队列CallbackRecord的aciton中，mCallbackQueues队列保存的是CallbackRecord对象。
+	
+	TraversalRunnable：ViewRootImpl内部类，用来接收Choreographer的回调
+	
+	CallbackRecord：
+		链表的节点对象，保存有下一个链表的对象、dueTime、action（FrameCallback或Runnable）、token
+	
+	然后判断如果是同一个线程中直接调用scheduleFrameLocked()方法，如果不是同一个线程，通过handler消息机制
+	切换到同一个线程调用scheduleFrameLocked()方法。
+	
+	scheduleFrameLocked():
+		1、开启同步信号情况下，如果是同一个线程调用scheduleVsyncLocked()
+		2、开启同步信号情况下，不是同一个线程通过handler的消息机制切换线程调用scheduleVsyncLocked()
+		3、没有开启同步信号情况下，通过handler消息机制调用doFrame()方法。
+		
+	scheduleVsyncLocked()：mDisplayEventReceiver.scheduleVsync()通过native向底层注册监听屏幕vsync信号
+	
+	当下一个屏幕刷新信号（vsync）到来
+	
+	FrameDisplayEventReceiver
+		Choreographer内部类，继承自DisplayEventReceiver并实现了Runnable接口，本身就是一个Runnable
+		用于接收底层屏幕vsync信号的回调，当接收到vsync信号后，会回调onVsync()方法，然后将自己作为一个Runnable通过handler消息发送出去，最终会调用run()方法。
+		在run()方法中调用doFrame()方法
+	
+	doFrame():
+		会依次调用doCallBacks()方法来执行对应的callbackType类型的回调
+	
+	doCallBacks()：
+		从mCallbackQueues队列中取出对应的callbackType的CallbackRecord，然后执行CallbackRecord.run()方法，最后会执行CallbackRecord里面action.run()
+		即执行的就是FrameCallback或Runnable的run()方法。
+		因为callbackType=CALLBACK_TRAVERSAL通过postCallback()方法保存的action是TraversalRunnable对象，因此会调用TraversalRunnable.run()
+		
+	TraversalRunnable.run(): 会执行doTraversal()方法
+	
+	doTraversal():
+		1、设置mTraversalScheduled = false，表示当前帧已经结束，可以接收下一帧的请求
+		2、移除同步消息屏障，用于主线程可以处理其他同步消息
+		3、调用performTraversals()方法
+		
+	performTraversals()：计算是否需要重新进行测量、布局、绘制，从上往下遍历视图树进行刷新布局
+		1、performMeasure()
+		2、performLayout()
+		3、performDraw()
+		
+
+Choreographer：协调动画、输入和绘图的计时
+	1、向底层注册vsync信号的监听
+	2、接收底层的vsync信号，然后分发给ViewRootImpl
+	3、监听帧
+	
+
+SurfaceFlinger
+	底层vsync信号的实现
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+
+
+
+
+
