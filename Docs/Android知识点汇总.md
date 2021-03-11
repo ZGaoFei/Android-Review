@@ -170,6 +170,86 @@ fragment依附于activity，一个activity中的多个fragment之间传递数据
 # Service
 Service 分为两种工作状态，一种是启动状态，主要用于执行后台计算；另一种是绑定状态，主要用于其他组件和 Service 的交互。
 
+[参考](https://blog.csdn.net/qq_27061049/article/details/109366345)
+
+```
+startService：
+	调用startService()后会依次执行onCreate()->onStartCommand()，调用stopService()或者stopSelf()会调用onDestroy()，多次调用startService()会多次执行onStartCommand()
+	启动服务之后，服务与启动者之间就没有了联系，即使启动者已经关闭，但是服务会一直在后台执行，直到调用stopService()/stopSelf()才会停止服务，无法与启动服务的组件进行通信
+bindService：
+	调用bindService()后会依次执行onCreate()->onBind()，调用unbindService()后会依次执行onUnBind()->onDestroy()，多次调用bindService()只会执行一次onBind()，多次绑定只需要一次解绑
+	绑定服务可以在组件中访问service的公共方法
+	通过IBinder来进行通信，同一个进程内的通信
+	通过Messenger来进行通信，可以在不同进程中进行通信
+	
+先绑定服务后启动服务
+	如果当前Service实例先以绑定状态运行，然后再以启动状态运行，那么绑定服务将会转为启动服务运行，这时如果之前绑定的宿主（Activity）被销毁了，也不会影响服务的运行，服务还是会一直运行下去，指定收到调用停止服务或者内存不足时才会销毁该服务。
+	
+先启动服务后绑定服务
+	如果当前Service实例先以启动状态运行，然后再以绑定状态运行，当前启动服务并不会转为绑定服务，但是还是会与宿主绑定，只是即使宿主解除绑定后，服务依然按启动服务的生命周期在后台运行，直到有Context调用了stopService()或是服务本身调用了stopSelf()方法抑或内存不足时才会销毁服务。
+	
+以上两种情况显示出启动服务的优先级确实比绑定服务高一些。服务在其托管进程的主线程中运行（UI线程），它既不创建自己的线程，也不在单独的进程中运行（除非另行指定）。这意味着，如果服务将执行任何耗时事件或阻止性操作时，则应在服务内创建新线程来完成这项工作，简而言之，耗时操作应该另起线程执行。
+
+前台服务：
+	startForeground(int id, Notification notification)把当前服务设置为前台服务
+	stopForeground(boolean removeNotification)从前台删除服务，该方法并不会停止服务。
+	
+服务与线程的区别
+	两者概念的迥异
+		- Thread是程序执行的最小单元，它是分配CPU的基本单位，android系统中UI线程也是线程的一种，当然Thread还可以用于执行一些耗时异步的操作。
+		- Service是Android的一种机制，服务是运行在主线程上的，它是由系统进程托管。它与其他组件之间的通信类似于client和server，是一种轻量级的IPC通信，这种通信的载体是binder，它是在linux层交换信息的一种IPC，而所谓的Service后台任务只不过是指没有UI的组件罢了。
+	两者的执行任务迥异
+		- 在android系统中，线程一般指的是工作线程(即后台线程)，而主线程是一种特殊的工作线程，它负责将事件分派给相应的用户界面小工具，如绘图事件及事件响应，因此为了保证应用UI 的响应能力主线程上不可执行耗时操作。如果执行的操作不能很快完成，则应确保它们在单独的工作线程执行。
+		- Service 则是android系统中的组件，一般情况下它运行于主线程中，因此在Service中是不可以执行耗时操作的，否则系统会报ANR异常，之所以称Service为后台服务，大部分原因是它本身没有UI，用户无法感知(当然也可以利用某些手段让用户知道)，但如果需要让Service执行耗时任务，可在Service中开启单独线程去执行。
+	两者使用场景
+		- 当要执行耗时的网络或者数据库查询以及其他阻塞UI线程或密集使用CPU的任务时，都应该使用工作线程(Thread)，这样才能保证UI线程不被占用而影响用户体验。
+		- 在应用程序中，如果需要长时间的在后台运行，而且不需要交互的情况下，使用服务。比如播放音乐，通过Service+Notification方式在后台执行同时在通知栏显示着。
+	两者的最佳使用方式
+		在大部分情况下，Thread和Service都会结合着使用
+
+Android 5.0 以上隐式启动问题
+	显示启动
+	Intent intent = new Intent(this,ForegroundService.class);
+	startService(intent);
+	
+	隐式启动
+	Intent serviceIntent=new Intent();
+	serviceIntent.setAction("com.android.ForegroundService");
+	startService(serviceIntent);
+	
+	如果在同一个应用中，两者都可以用。在不同应用时，只能用隐式启动。
+	
+	Android 5.0之后处于安全的角度禁用了隐式启动，如果使用隐式启动将会报错
+	解决方式：
+	1、设置Action和packageName
+	Intent serviceIntent=new Intent();
+	serviceIntent.setAction("com.android.ForegroundService");
+	serviceIntent.setPackage(getPackageName());//设置应用的包名
+	startService(serviceIntent);
+	2、将隐式启动转换为显示启动
+	
+如何保证服务不被杀死
+1、内存不足而杀死Service时，可以将服务设置为前台服务，或者在onStartCommand() 方法的返回值设为 START_STICKY或START_REDELIVER_INTENT ，该值表示服务在内存资源紧张时被杀死后，在内存资源足够时再恢复。
+2、用户直接在设置中杀死服务，可以设置两个服务互相监听对方是否被关闭，在onDestroy()中发送广播来开启另一个服务
+3、直接杀死应用，无解
+		
+IntentService：
+	内部是继承自Service，里面实现了HandlerThread，用HandlerThread来处理耗时操作，当处理完任务后，服务会stopSelf()，来关闭服务。内部只有一个线程，处理多任务时需要排队。默认是为了startService()实现的，onBind()方法里面返回null
+	官方文档上对IntentService 是这样描述的：
+    1、IntentService 会创建一个线程，来处理所有传给onStartCommand()的Intent请求。
+    2、对于startService()请求执行onHandleIntent()中的耗时任务，会生成一个队列，每次只有一个Intent传入onHandleIntent()方法并执行。也就是同一时间只会有一个耗时任务被执行，其他的请求还要在后面排队， onHandleIntent()方法不会多线程并发执行。
+    3、当所有startService()请求被执行完成后，IntentService 会自动销毁，所以不需要自己写stopSelf()或stopService()来销毁服务。
+    4、提供默认的onBind()实现 ，即返回null，不适合绑定的 Service。
+    5、提供默认的 onStartCommand() 实现，将intent传入等待队列中，然后到onHandleIntent()的实现。所以如果需要重写onStartCommand() 方法一定要调用父类的实现。
+
+HandlerThread：
+	HandlerThread本质上是一个线程类，它继承了Thread；
+	HandlerThread有自己的内部Looper对象，可以进行looper循环；
+	通过获取HandlerThread的looper对象传递给Handler对象，可以在handleMessage方法中执行异步任务。
+	创建HandlerThread后必须先调用HandlerThread.start()方法，Thread会先调用run方法，创建Looper对象。
+	
+```
+
 ## 启动过程
 ![](http://gityuan.com/images/android-service/am/Seq_start_service.png)
 
@@ -262,7 +342,40 @@ startForeground(ONGOING_NOTIFICATION_ID, notification);
 ```
 
 # BroadcastReceiver
+```
+广播接收器：
+	四大组件之一，包含广播发送者和广播接收者，用于监听、接收应用APP或系统发出的广播，并作出响应，广播接收者运行在UI线程，因此不能用来处理耗时任务
+	应用于android不同组件间的通信（应用内、不同应用之间）或多线程通信或与系统的通信
+	广播接收者采用观察者模式：基于消息的发布 / 订阅事件模型，包含消息订阅者、消息发布者、消息中心（AMS）
+	
+	注册方式：
+	1、静态注册
+	在AndroidManifest.xml中通过<receive>标签声明注册
+	2、动态注册
+	在代码中调用Context.registerReceiver()
+	区别：
+	静态注册：常驻广播，在AndroidManifest.xml中通过<receive>标签声明注册，常驻，不受任何组件的生命周期影响，应用关闭后如果有信心广播来，程序依旧会被系统调用，比较耗电和占内存，应用于需要实时监测的场景
+	动态注册：非常驻广播，调用Context.registerReceiver()注册，灵活，跟随组件的生命周期变化，组件结束后，广播也会跟随结束，在组件结束前，必须移除广播接收者，应用于特定时刻监测的场景
+	
+广播是用意图（Intent）标识，通过sendBroadcast()发送
+
+广播的类型：
+	普通广播：即开发这自定义的广播
+	系统广播：系统发出的广播，只涉及到手机的基本操作
+	有序广播：发送出去的广播会被接收者按照先后顺序接收，接收顺序按照Priority的值从大到小排序，Priority相同，动态注册的广播优先
+	特点：接收广播按顺序接收；先接收的广播接收者可以对广播进行截断，即后面接收的广播接收者不再受到广播；先接收的广播接收者可以对广播进行修改，那么后接收的广播接收者将接收到被修改后的广播
+	使用：sendOrderdBroadCast()
+	粘性广播：已经发送的广播会保存在系统中，只要注册了粘性广播就会立即收到（广播的发送先与注册，仍然能收到），android5.0以后已经失效了
+	APP应用内广播：广播在设置exported=true时，会跨APP进行通信，因此可以改为应用内广播
+	1、设置exported=false
+	2、增设permission，用于权限验证
+	3、指定广播的包名，此广播将只会发送到此包中的App内与之相匹配的有效广播接收器中。
+	
+LocalBroadcastManager来发送应用内广播，只能动态注册
+```
+
 target 26 之后，无法在 AndroidManifest 显示声明大部分广播，除了一部分必要的广播，如：
+
 - ACTION_BOOT_COMPLETED
 - ACTION_TIME_SET
 - ACTION_LOCALE_CHANGED
@@ -275,6 +388,35 @@ LocalBroadcastManager.getInstance(MainActivity.this).registerReceiver(receiver, 
 
 
 # ContentProvider
+``` 
+内容提供者：四大组件之一，用于进程间数据交互和共享，即跨进程通信。内部采用binder机制实现的跨进程通信。
+
+URI：（Uniform Resource Identifier）统一资源标识符
+	以content://开头，标识为ContentProvider
+	content://com.baidu/User/1
+	
+MIME：数据类型，指定某个扩展名的文件用某种应用程序打开
+	text/html、text/css...
+	
+ContentProvider：
+	内容提供者，当前进程提供insert()、delete()、query()、update()四个方法来操作自己的数据，提供给其他进程调用
+	
+ContentResolver：
+	统一管理不同ContentProvider间的操作
+	通过URI操作不同ContentProvider中的数据；其他进程通过ContentResolver来与ContentProvider进行交互
+	好处：统一访问方式，不必知道内部实现细节
+	
+ContentUri：
+	操作URI，通过withAppendedId()来追加id，parseId()解析id
+	
+UriMatcher：
+	在ContentProvider中注册URI；根据URI匹配ContentProvider中对应的数据表
+	
+ContentObserver：
+	内容观察者，观察Uri引起ContentProvider中的数据变化和通知外界；ContentProvider数据发生（增、删、改）时，就会触发ContentObserver
+
+```
+
 ContentProvider 管理对结构化数据集的访问。它们封装数据，并提供用于定义数据安全性的机制。 内容提供程序是连接一个进程中的数据与另一个进程中运行的代码的标准界面。
 
 ContentProvider 无法被用户感知，对于一个 ContentProvider 组件来说，它的内部需要实现增删改查这四种操作，它的内部维持着一份数据集合，这个数据集合既可以是数据库实现，也可以是其他任何类型，如 List 和 Map，内部的 insert、delete、update、query 方法需要处理好线程同步，因为这几个方法是在 Binder 线程池中被调用的。
