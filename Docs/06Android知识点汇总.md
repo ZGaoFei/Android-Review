@@ -183,7 +183,7 @@ bindService：
 	通过Messenger来进行通信，可以在不同进程中进行通信
 	
 先绑定服务后启动服务
-	如果当前Service实例先以绑定状态运行，然后再以启动状态运行，那么绑定服务将会转为启动服务运行，这时如果之前绑定的宿主（Activity）被销毁了，也不会影响服务的运行，服务还是会一直运行下去，指定收到调用停止服务或者内存不足时才会销毁该服务。
+	如果当前Service实例先以绑定状态运行，然后再以启动状态运行，那么绑定服务将会转为启动服务运行，这时如果之前绑定的宿主（Activity）被销毁了，也不会影响服务的运行，服务还是会一直运行下去，直到收到调用停止服务或者内存不足时才会销毁该服务。
 	
 先启动服务后绑定服务
 	如果当前Service实例先以启动状态运行，然后再以绑定状态运行，当前启动服务并不会转为绑定服务，但是还是会与宿主绑定，只是即使宿主解除绑定后，服务依然按启动服务的生命周期在后台运行，直到有Context调用了stopService()或是服务本身调用了stopSelf()方法抑或内存不足时才会销毁服务。
@@ -354,16 +354,16 @@ startForeground(ONGOING_NOTIFICATION_ID, notification);
 	2、动态注册
 	在代码中调用Context.registerReceiver()
 	区别：
-	静态注册：常驻广播，在AndroidManifest.xml中通过<receive>标签声明注册，常驻，不受任何组件的生命周期影响，应用关闭后如果有信心广播来，程序依旧会被系统调用，比较耗电和占内存，应用于需要实时监测的场景
+	静态注册：常驻广播，在AndroidManifest.xml中通过<receive>标签声明注册，常驻，不受任何组件的生命周期影响，应用关闭后如果有信息广播来，程序依旧会被系统调用，比较耗电和占内存，应用于需要实时监测的场景
 	动态注册：非常驻广播，调用Context.registerReceiver()注册，灵活，跟随组件的生命周期变化，组件结束后，广播也会跟随结束，在组件结束前，必须移除广播接收者，应用于特定时刻监测的场景
 	
 广播是用意图（Intent）标识，通过sendBroadcast()发送
 
 广播的类型：
-	普通广播：即开发这自定义的广播
+	普通广播：即开发者自定义的广播
 	系统广播：系统发出的广播，只涉及到手机的基本操作
 	有序广播：发送出去的广播会被接收者按照先后顺序接收，接收顺序按照Priority的值从大到小排序，Priority相同，动态注册的广播优先
-	特点：接收广播按顺序接收；先接收的广播接收者可以对广播进行截断，即后面接收的广播接收者不再受到广播；先接收的广播接收者可以对广播进行修改，那么后接收的广播接收者将接收到被修改后的广播
+	特点：接收广播按顺序接收；先接收的广播接收者可以对广播进行截断，即后面接收的广播接收者不再收到广播；先接收的广播接收者可以对广播进行修改，那么后接收的广播接收者将接收到被修改后的广播
 	使用：sendOrderdBroadCast()
 	粘性广播：已经发送的广播会保存在系统中，只要注册了粘性广播就会立即收到（广播的发送先与注册，仍然能收到），android5.0以后已经失效了
 	APP应用内广播：广播在设置exported=true时，会跨APP进行通信，因此可以改为应用内广播
@@ -381,6 +381,16 @@ target 26 之后，无法在 AndroidManifest 显示声明大部分广播，除�
 - ACTION_LOCALE_CHANGED
 ```java
 LocalBroadcastManager.getInstance(MainActivity.this).registerReceiver(receiver, filter);
+
+1、LocalBroadcastManager在创建单例传参时，不用纠结context是取activity的还是Application的，它自己会取到tApplicationContext。
+
+2、LocalBroadcastManager只适用于代码间的，因为它就是保存接口BroadcastReceiver的对象，然后直接调用其onReceive方法。
+
+3、LocalBroadcastManager注册广播后，当该其Activity或者Fragment不需要监听时，记得要取消注册，注意一点：注册与取消注册在activity或者fragment的生命周期中要保持一致，例如onResume，onPause。
+
+4、LocalBroadcastManager虽然支持对同一个BroadcastReceiver可以注册多个IntentFilter，但还是应该将所需要的action都放进一个IntentFilter，即只注册一个IntentFilter，这只是我个人的建议。
+
+5、LocalBroadcastManager所发送的广播action，只能与注册到LocalBroadcastManager中BroadcastReceiver产生互动。如果你遇到了通过LocalBroadcastManager发送的广播，对面的BroadcastReceiver没响应，很可能就是这个原因造成的。
 ```
 
 ## 注册过程
@@ -801,6 +811,7 @@ public void draw(Canvas canvas) {
 - 托管正执行其 ``onReceive()`` 方法的 BroadcastReceiver
 
 **2、可见进程**  
+
 - 托管不在前台、但仍对用户可见的 Activity（已调用其 ``onPause()`` 方法）。例如，如果前台 Activity 启动了一个对话框，允许在其后显示上一 Activity，则有可能会发生这种情况。
 - 托管绑定到可见（或前台）Activity 的 Service
 
@@ -1817,7 +1828,7 @@ SharedPreferences 与 Editor 只是两个接口. SharedPreferencesImpl 和 Edito
 - 不要高频地使用 apply，尽可能地批量提交
 - 不要使用 MODE_MULTI_PROCESS
 - 高频写操作的 key 与高频读操作的 key 可以适当地拆分文件，由于减少同步锁竞争
-- 不要连续多次 edit()，应该获取一次获取 edit()，然后多次执行 putxxx()，减少内存波动
+- 不要连续多次 edit()，应该获取一次 edit()，然后多次执行 putxxx()，减少内存波动
 
 # 消息机制
 ## Handler 机制
@@ -2232,7 +2243,7 @@ public void onCreate() {
 }
 ```
 
-IntentService 第一次启动时，会在 onCreatea 方法中创建一个 HandlerThread，然后使用的 Looper 来构造一个 Handler 对象 mServiceHandler，这样通过 mServiceHandler 发送的消息最终都会在 HandlerThread 中执行。每次启动 IntentService，它的 onStartCommand 方法就会调用一次，onStartCommand 中处理每个后台任务的 Intent，onStartCommand 调用了 onStart 方法：
+IntentService 第一次启动时，会在 onCreate 方法中创建一个 HandlerThread，然后使用的 Looper 来构造一个 Handler 对象 mServiceHandler，这样通过 mServiceHandler 发送的消息最终都会在 HandlerThread 中执行。每次启动 IntentService，它的 onStartCommand 方法就会调用一次，onStartCommand 中处理每个后台任务的 Intent，onStartCommand 调用了 onStart 方法：
 
 ``IntentService.java``
 ```java
