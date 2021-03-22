@@ -21,5 +21,8 @@
 6、HeapAnalyzerService的runAnalysis中创建HeapAnalyzer对象并调用它的一个核心方法checkForLeak（）；
 
 7、HeapAnalyzer的checkForLeak（）会先解析hprof文件并生成快照文件，然后对快照中的泄漏对象进行去重，去重后根据第2步中的key去获取泄漏对象，如果对象为空则说明对象已经被回收，如果不为空则通过findLeakTrace（）方法计算出最短GC路径，并显示到DisplayLeakActivity页面，提醒开发者存在内存泄漏；
+
+原理：
+	监听Activity的onDestroy()方法被调用，然后将destroy的activity加入到一个列表里面，然后将activity放到WeakReference中与ReferenceQueue进行关联，如果activity被回收，就会将activity对象放到ReferenceQueue中，监听ReferenceQueue队列来判断activity有没有被回收（对比已经调用了onDestroy()的activity），如果泄露，则用运行在另一个进程中的Service分析泄露内容，通过解析hprof文件生成快照，然后通过去重处理，计算最短GC路径，然后显示出来提醒开发者
 ```
 
