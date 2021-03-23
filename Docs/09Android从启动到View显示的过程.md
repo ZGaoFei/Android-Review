@@ -19,7 +19,7 @@
 1、Launcher通知AMS要启动新的Activity，调用的是Launcher.startActivitySafely()，实质是调用Instrumentation.execStartActivity()，然后会通知AMS创建Activity
 2、AMS会校验Activity是否正确，会检测在AndroidManifest中是否已经注册过，校验通过后，AMS会获取栈顶的Activity，通知所在的进程pause当前的Activity
 3、Launcher进程pause掉当前的进程后，会通知AMS已经pause了Activity
-4、AMS将Activity保证成ActivityStack，然后检测此Activity的进程是否已经存在
+4、AMS将Activity包装成ActivityStack，然后检测此Activity的进程是否已经存在
 	a、如果存在，则交给当前进程LAUNCH_ACTIVITY，创建Activity
 	b、不存在，通过Socket与Zygote进程进行通信，调用Process.start()，去fork一个新的APP进程
 5、新的进程会导入ActivityThread类，并执行入口方法main()，执行main()是RuntimeInit通过反射的方式调用的
@@ -48,6 +48,9 @@
 8、handleResumeActivity()调用performResumeActivity()之后，接着将DecorView设置为INVISIBLE，然后通过windowManager.addView()与DecorView绑定到一起，在WindowManager.addView()实际是WindowManagerImpl.addView()方法中调用的是WindowManagerGlobal.addView()
 9、WindowManagerGlobal.addView()方法中会创建ViewRootImpl对象，然后通过ViewRootImpl.setView()将DecorView进行绑定，然后在ViewRootImpl.setView()中会调用requestLayout()，之后会调用view.assignParent(this)，将DecorView的父View设置为ViewRootImpl
 10、handleResumeActivity()之后会接着调用activity.makeVisible()将DecorView设置为VISIBLE
+
+===分割线===
+
 11、ViewRootImpl.requestLayout()->scheduleTraversals()，scheduleTraversals()会设置注册监听屏幕刷新信号的标志位（mTraversalScheduled）为true，然后发送一个同步消息屏障，然后Choreographer.postCallBack()将TraversalRunnable对象以CALLBACK_TRAVERSAL的消息格式放入消息队列中
 12、Choreographer.postCallBack()会调用DisplayEventReceiver.scheduleVsync()->调用一个native方法向底层注册下一个屏幕刷新信号的监听
 13、当接收到屏幕刷新信号后会回调到FrameDisplayEventReceiver.onVsync()方法，FrameDisplayEventReceiver是一个Runnable的实现，在onVsync()方法中通过handler将callback指向自己发送出去，然后会走到自己的run()方法中，这样做是为了切换到线程

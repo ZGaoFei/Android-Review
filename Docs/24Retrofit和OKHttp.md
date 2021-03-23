@@ -150,3 +150,45 @@ OkHttp把请求和响应分别封装成了RequestBody和ResponseBody，下载进
 
 
 
+##### Retrofit
+
+```
+Retrofit retrofit = new Retrofit.Builder()
+                .addConverterFactory(GsonConverterFactory.create())
+                .addCallAdapterFactory()
+                .baseUrl("http://apis.baidu.com/txapi/")
+                .build();
+
+        retrofit.create(TestRequestInterface.class)
+                .getNews("", "", "")
+                .enqueue(new Callback<HomeModel>() {
+                    @Override
+                    public void onResponse(Call<HomeModel> call, Response<HomeModel> response) {
+                    }
+                    @Override
+                    public void onFailure(Call<HomeModel> call, Throwable t) {
+                    }
+                });
+                
+  
+1、创建一个接口用于声明接口，包含参数、链接等
+2、创建Retrofit对象，调用Builder
+3、创建接口对象，然后调用接口方法，请求接口，返回回调
+
+构建者模式
+工厂模式
+动态代理模式
+
+addConverterFactory()：添加支持的解析方式
+addCallAdapterFactory()：主要用于对Call进行转化
+callFactory()：默认是OKhttpClient
+
+Retrofit用构建者模式生成Retrofit对象
+然后调用create()方法将接口对象传入，使用动态代理模式来创建接口对象
+调用接口里面的方法时（getNews）会走到InvocationHandler.invoke()
+在InvocationHandler.invoke()中调用了loadServiceMethod(method).invoke(args)
+扫描接口中的方法的注解，然后解析出参数等封装成Request对象
+即调用了HttpServiceMethod.invoke(args)方法来创建OkHttpCall对象并返回
+在call.enqueue()中创建了okhttp3.Call，然后调用okhttp3.Call.enqueue()来加入到队列中进行请求网络
+```
+
