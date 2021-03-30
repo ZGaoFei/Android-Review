@@ -10,7 +10,7 @@ Lifecycle是怎样感知生命周期的？
 2.Lifecycle是如何处理生命周期的？
 通过调用了((LifecycleRegistry) lifecycle).handleLifecycleEvent(event);方法，也就是LifecycleRegistry 类来处理这些生命周期。
 
-3.LifecycleObserver的方法是怎么回调是的呢？
+3.LifecycleObserver的方法是怎么回调的？
 LifecycleRegistry 的 handleLifecycleEvent方法，然后会通过层层调用最后通过反射到LifecycleObserver方法上的@OnLifecycleEvent(Lifecycle.Event.XXX)注解值，来调用对应的方法
 
 4.为什么LifecycleObserver可以感知到Activity的生命周期
