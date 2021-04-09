@@ -857,7 +857,7 @@ Thread 中定义了下面三个优先级常量：
 - 禁止指令重排序优化
 - volatile 的读性能消耗与普通变量几乎相同，但是写操作稍慢，因为它需要在本地代码中插入许多内存屏障指令来保证处理器不发生乱序执行
 
-AtomicInteger 中主要实现了整型的原子操作，防止并发情况下出现异常结果，其内部主要依靠 JDK 中的 unsafe 类操作内存中的数据来实现的。volatile 修饰符保证了 value 在内存中其他线程可以看到其值得改变。CAS（Compare and Swap）操作保证了 AtomicInteger 可以安全的修改value 的值。
+AtomicInteger 中主要实现了整型的原子操作，防止并发情况下出现异常结果，其内部主要依靠 JDK 中的 unsafe 类操作内存中的数据来实现的。volatile 修饰符保证了 value 在内存中其他线程可以看到其值的改变。CAS（Compare and Swap）操作保证了 AtomicInteger 可以安全的修改value 的值。
 
 # synchronized
 当它用来修饰一个方法或者一个代码块的时候，能够保证在同一时刻最多只有一个线程执行该段代码。
@@ -898,7 +898,7 @@ public interface Lock {
 ```
 | 方法 | 说明 |
 |----|:----|
-| ``lock()`` | 用来获取锁，如果锁被其他线程获取，处于等待状态。如果采用 Lock，必须主动去释放锁，并且在发生异常时，不会自动释放锁。因此一般来说，使用Lock必须在 try{}catch{} 块中进行，并且将释放锁的操作放在finally块中进行，以保证锁一定被被释放，防止死锁的发生。|
+| ``lock()`` | 用来获取锁，如果锁被其他线程获取，处于等待状态。如果采用 Lock，必须主动去释放锁，并且在发生异常时，不会自动释放锁。因此一般来说，使用Lock必须在 try{}catch{} 块中进行，并且将释放锁的操作放在finally块中进行，以保证锁一定被释放，防止死锁的发生。 |
 | ``lockInterruptibly()`` | 通过这个方法去获取锁时，如果线程正在等待获取锁，则这个线程能够响应中断，即中断线程的等待状态。|
 | ``tryLock()`` | tryLock 方法是有返回值的，它表示用来尝试获取锁，如果获取成功，则返回 true，如果获取失败（即锁已被其他线程获取），则返回 false，也就说这个方法无论如何都会立即返回。在拿不到锁时不会一直在那等待。|
 | ``tryLock(long，TimeUnit)`` | 与 tryLock 类似，只不过是有等待时间，在等待时间内获取到锁返回 true，超时返回 false。|
@@ -1127,3 +1127,4 @@ public static byte[] generateProxyClass(final String name,
 @Inherited：是否可以被继承，默认为false  
 
 @Documented：是否会保存到 Javadoc 文档中
+

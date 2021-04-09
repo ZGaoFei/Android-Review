@@ -1,18 +1,18 @@
 ##### MultiDex
 
 ```
-Android 5.0版本之后不需要设置多dex模式，因为5.0以上默认的虚拟机是ART，ART没有65536的问题
+Android 5.0以上版本不需要设置多dex模式，因为5.0以上默认的虚拟机是ART，ART没有65536的问题
 
 编译流程：
 1、打包资源文件，生成R.java文件（使用工具AAPT）
 2、处理AIDL文件，生成java代码（没有AIDL则忽略）
 3、编译 java 文件，生成对应.class文件（java compiler）
-.class 文件转换成dex文件（dex）
-4、打包成没有签名的apk（使用工具apkbuilder）
-5、使用签名工具给apk签名（使用工具Jarsigner）
-6、对签名后的.apk文件进行对齐处理，不进行对齐处理不能发布到Google Market（使用工具zipalign）
+4、.class 文件转换成.dex文件（dex compiler）
+5、打包成没有签名的apk（使用工具apkbuilder）
+6、使用签名工具给apk签名（使用工具Jarsigner）
+7、对签名后的.apk文件进行对齐处理，不进行对齐处理不能发布到Google Market（使用工具zipalign）
 
-MultDex安装原理：
+MultiDex安装原理：
 1、解压apk，遍历里面的dex文件，如class1.dex/class2.dex等，然后又压缩成class1.zip/class2.zip，然后返回zip文件列表
 2、第一次加载才会有解压和压缩过程，第二次直接读取sp中保存的dex信息，直接返回file list信息
 3、反射ClassLoader的pathList字段
@@ -38,7 +38,7 @@ ClassLoader加载类的过程：
 优点：
 1、支持类、资源、so修复
 2、兼容性处理的很好，全平台支持
-3、由于不用插庄，所以性能损耗很小
+3、由于不用插桩，所以性能损耗很小
 4、完善的开发文档和官方技术支持
 5、gradle支持，再自己定义下可以一键打补丁包
 6、dexDiff算法使得补丁文件较小
@@ -58,7 +58,7 @@ ClassLoader加载类的过程：
 Android N之后的加载机制
 在Dalvik虚拟机中，总是在运行时通过JIT（Just-In—Time）把字节码文件编译成机器码文件再执行，这样跑起来程序就很慢，所在ART上，改为AOT（Ahead-Of—Time）提前编译，即在安装应用或OTA系统升级时提前把字节码编译成机器码，这样就可以直接执行了，提高了运行效率。但是AOT有个缺点就是每次执行的时间都太长了，并且占用的ROM空间又很大，所以在Android N上Google做了混合编译同时支持JIT和AOT。混合编译的作用简单来说，在应用运行时分析运行过的代码以及“热代码”，并将配置存储下来。在设备空闲与充电时，ART仅仅编译这份配置中的“热代码”。
 
-简单来说，就是在应用安装和首次运行不做AOT编译，先让用户愉快的玩耍起来，然后把在运行中JIT解释执行的那部分代码收集起来，在手机空闲的时候通过dex2aot编译生成一份名为app image的base.art文件，然后在下次启动的时候一次性把app image加载进来到缓存，预先加载代替用时查找以提升应用的性能。
+简单来说，就是在应用安装和首次运行不做AOT编译，先让用户愉快的玩耍起来，然后把在运行中JIT解释执行的那部分代码收集起来，在手机空闲的时候通过dex2aot编译生成一份名为app image的base.art文件，然后在下次启动的时候一次性把app image加载进来到缓存，【预先加载代替用时查找】以提升应用的性能。
 
 Android N（7.x）对热补丁的影响
 app image中已经存在的类会被插入到ClassLoader的ClassTable，再次加载类时，直接从ClassTable中取而不会走DefineClass。假设base.art文件在补丁前已经存在，这里存在三种情况：

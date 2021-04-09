@@ -23,7 +23,7 @@
 5、CallServerInterceptor：请求拦截器，将 http 请求写进 IO 流当中，并且从 IO 流中读取响应 Response。内部使用的是Okio来实现的请求。
 
 队列：
-1、readyAsyncCalls：异步准备队列，用于存放当runningAsyncCalls超过上限后的任务，用于后面线程池有空闲的线程后来讲readyAsyncCalls里面的任务放入runningAsyncCalls中执行
+1、readyAsyncCalls：异步准备队列，用于存放当runningAsyncCalls超过上限后的任务，用于后面线程池有空闲的线程后来将readyAsyncCalls里面的任务放入runningAsyncCalls中执行
 2、runningAsyncCalls：异步运行队列，用于存储正在运行的异步任务
 3、runningSyncCalls：同步运行队列，用于存储正在运行的同步任务
 默认的最大并发请求量 maxRequests = 64 和单个 Host 主机支持的最大并发量 maxRequestsPerHost = 5，当runningAsyncCalls队列中正在运行的任务超过了64个，并且当前主机的最大并发量大于5，则将任务放入readyAsyncCalls里面。
@@ -43,7 +43,7 @@
 3、工厂方法模式：Call接口提供了内部接口Factory
 	用于将对象的创建延迟到该工厂类的子类中进行，从而实现动态的配置，工厂方法模式。（工厂方法模式：这种类型的设计模式属于创建型模式，它提供了一种创建对象的最佳方式。在工厂模式中，我们在创建对象时不会对客户端暴露创建逻辑，并且是通过使用一个共同的接口来指向新创建的对象。）
 
-4、享元模式：在Dispatch的线程池中，用到了享元模式，一个不限容量的线程池 ， 线程空闲时存活时间为 60 秒。线程池实现了对象复用，降低线程创建开销。
+4、享元模式：在Dispatch的线程池中，用到了享元模式，一个不限容量的线程池，线程空闲存活时间为 60 秒。线程池实现了对象复用，降低线程创建开销。
 	（享元模式：尝试重用现有的同类对象，如果未找到匹配的对象，则创建新对象，主要用于减少创建对象的数量，以减少内存占用和提高性能）
 	
 5、责任链模式：在OKhttp中的拦截器模块，执行过程用到。
@@ -130,7 +130,7 @@ addNetworkInterceptor()是在ConnectInterceptor之后和CallServerInterceptor之
 网络拦截器：网络请求层面的拦截器，1、可以修改OKhttp框架自动添加的一些属性，2、可以观察完整的请求参数，3、能够对中间的响应进行操作比如重定向和重试，4、当发生网络短路时不调用缓存的响应结果，5、监控数据就像数据在网络上传输一页，6、访问承载请求的连接Connection
 
 2、response.body().string() 为什么只能调用一次？
-因为在调用次方法之后，会执行Util.closeQuietly(source);将流关闭，因此再次请求就会出现流关闭的异常
+因为在调用一次方法之后，会执行Util.closeQuietly(source);将流关闭，因此再次请求就会出现流关闭的异常
 1.内存缓存一份response.body().string()；
 2.自定义拦截器处理 Log。
 
@@ -142,6 +142,7 @@ OkHttp把请求和响应分别封装成了RequestBody和ResponseBody，下载进
     a、第一次拿到响应后根据头信息决定是否缓存。
     b、下次请求时判断是否存在本地缓存，是否需要使用对比缓存、封装请求头信息等等。
     c、如果缓存失效或者需要对比缓存则发出网络请求，否则使用本地缓存。
+    对比缓存，如果服务器返回304，表示数据没有变化，接着使用缓存
 ```
 
 ##### 对比Volley

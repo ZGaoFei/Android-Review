@@ -559,6 +559,7 @@ TouchSlop是系统所能识别出的被认为滑动的最小距离，不同设�
 
 ## VelocityTracker
 **VelocityTracker** 可用于追踪手指在滑动中的速度：
+
 ```java
 view.setOnTouchListener(new View.OnTouchListener() {
     @Override
@@ -690,7 +691,7 @@ view.requestLayout();
 
 - View 在可点击状态下，onTouchEvent 默认会消耗事件。
 
-- ACTION_DOWN 被拦截了，onInterceptTouchEvent 方法执行一次后，就会留下记号（mFirstTouchTarget == null）那么往后的 ACTION_MOVE 和 ACTION_UP 都会拦截。`
+- ACTION_DOWN 被拦截了，onInterceptTouchEvent 方法执行一次后，就会留下记号（mFirstTouchTarget == null）那么往后的 ACTION_MOVE 和 ACTION_UP 都会拦截。
 
 
 ## 在 Activity 中获取某个 View 的宽高
