@@ -70,7 +70,7 @@ sendMessageAtFrontOfQueue()
 
 ```
 消息队列
-	主要用来存放Message对象的，主要功能是想消息池中投递消息和取出消息
+	主要用来存放Message对象的，主要功能是向消息池中投递消息和取出消息
 	
 enqueueMessage()：投递消息
 	msg.target不能为空，否则会报错
@@ -102,7 +102,7 @@ postSyncBarrier()：发送同步屏障
 prepar(quitAllowed)：
 	quitAllowed表示是否允许退出，为true表示允许
 	每个线程只允许执行一次该方法，第二次执行时线程的ThreadLocal已经有值，会抛出异常
-	主要主要是创建Looper对象，并保存到当前线程的ThreadLocal中
+	主要是创建Looper对象，并保存到当前线程的ThreadLocal中
 	调用Looper的私有构造方法，在构造方法里面创建了MessageQueue对象
 	
 loop()：
@@ -150,8 +150,8 @@ get()：获取当前线程的TLS区域的数据
 
 1、每个线程都有一个ThreadLocalMap 类型的 threadLocals 属性。
 2、ThreadLocalMap 类相当于一个Map，key 是 ThreadLocal 本身，value 就是我们的值。
-3、当我们通过 threadLocal.set(new Integer(123))，我们就会在这个线程中的 threadLocals 属性中放入一个键值对，key 是 这个 threadLocal.set(new Integer(123))的threadlocal，value 就是值new Integer(123)。
-4、当我们通过 threadlocal.get() 方法的时候，首先会根据这个线程得到这个线程的 threadLocals 属性，然后由于这个属性放的是键值对，我们就可以根据键 threadlocal 拿到值。 注意，这时候这个键 threadlocal 和 我们 set 方法的时候的那个键 threadlocal 是一样的，所以我们能够拿到相同的值。
+3、当我们通过 threadLocal.set(new Integer(123))，我们就会在这个线程中的 threadLocals 属性中放入一个键值对，key 是这个threadLocal.set(new Integer(123))的threadlocal，value 就是值new Integer(123)。
+4、当我们通过 threadlocal.get() 方法的时候，首先会根据这个线程得到这个线程的 threadLocals 属性，然后由于这个属性放的是键值对，我们就可以根据键 threadlocal 拿到值。 注意，这时候这个键 threadlocal 和我们 set 方法的时候的那个键 threadlocal 是一样的，所以我们能够拿到相同的值。
 5、ThreadLocalMap 的get/set/remove方法跟HashMap的内部实现都基本一样，通过 "key.threadLocalHashCode & (table.length - 1)" 运算式计算得到我们想要找的索引位置，如果该索引位置的键值对不是我们要找的，则通过nextIndex方法计算下一个索引位置，直到找到目标键值对或者为空。
 6、hash冲突：在HashMap中相同索引位置的元素以链表形式保存在同一个索引位置；而在ThreadLocalMap中，没有使用链表的数据结构，而是将（当前的索引位置+1）对length取模的结果作为相同索引元素的位置：源码中的nextIndex方法，可以表达成如下公式：如果i为当前索引位置，则下一个索引位置 = (i + 1 < len) ? i + 1 : 0。
 

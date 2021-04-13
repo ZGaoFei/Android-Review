@@ -9,7 +9,7 @@
 4、通过缓存避免重复的请求
 5、请求失败后会自动重试主机的其他IP，自动重定向（RetryAndFllowUpInterceptor）
 
-注意：OKhttp的callBack是在线程中调用的，因此不能直接在callBack中更新UI
+注意：OKhttp的callBack是在子线程中调用的，因此不能直接在callBack中更新UI
 ```
 
 ##### 5个拦截器和3个队列
@@ -28,7 +28,7 @@
 3、runningSyncCalls：同步运行队列，用于存储正在运行的同步任务
 默认的最大并发请求量 maxRequests = 64 和单个 Host 主机支持的最大并发量 maxRequestsPerHost = 5，当runningAsyncCalls队列中正在运行的任务超过了64个，并且当前主机的最大并发量大于5，则将任务放入readyAsyncCalls里面。
 
-在Dispatcher.finifshed(this)中的promoteCalls();方法中，对等待就绪的异步队列进行遍历，生成对应的AsyncCall实例，并添加到runningAsyncCalls中，最后放入到线程池中执行，一直到所有请求都结束。
+在Dispatcher.finished(this)中的promoteCalls();方法中，对等待就绪的异步队列进行遍历，生成对应的AsyncCall实例，并添加到runningAsyncCalls中，最后放入到线程池中执行，一直到所有请求都结束。
 ```
 
 ##### 设计模式
@@ -113,7 +113,7 @@ ThreadPoolExecutor：
 5、首先是否命中缓存（缓存是否有，是否超时，是否有效），命中直接返回缓存不再发送请求
 6、连接池是否已有，是否多路复用
 7、访问网络
-8、请求结束后会调用Dispatcher.finifshed(this)，来分配执行下一个任务
+8、请求结束后会调用Dispatcher.finished(this)，来分配执行下一个任务
 
 ```
 
@@ -127,7 +127,7 @@ addInterceptor()在RealCall里面添加拦截器的时候是最先添加的，�
 addNetworkInterceptor()是在ConnectInterceptor之后和CallServerInterceptor之前添加的，即连接已经准备好，还没有发送请求
 应用拦截器（addInterceptor）因为只会调用一次，通常用于统计客户端的网络请求发起情况；而网络拦截器（addNetworkInterceptor）一次调用代表了一定会发起一次网络通信，因此通常可用于统计网络链路上传输的数据。
 应用拦截器功能：APP层面的拦截器，1、对请求参数进行统一加密处理，2、拦截不符合规则的URL，3、对请求或者返回参数设置统一的编码方式，4、不需要担心中间过程的响应如重定向和重试，5、总是调用一次，即使http响应是从缓存中获取，6、允许短路而不调用Chain.proceed()即中止调用，7、允许重试使Chain.proceed()调用多次
-网络拦截器：网络请求层面的拦截器，1、可以修改OKhttp框架自动添加的一些属性，2、可以观察完整的请求参数，3、能够对中间的响应进行操作比如重定向和重试，4、当发生网络短路时不调用缓存的响应结果，5、监控数据就像数据在网络上传输一页，6、访问承载请求的连接Connection
+网络拦截器：网络请求层面的拦截器，1、可以修改OKhttp框架自动添加的一些属性，2、可以观察完整的请求参数，3、能够对中间的响应进行操作比如重定向和重试，4、当发生网络短路时不调用缓存的响应结果，5、监控数据就像数据在网络上传输一样，6、访问承载请求的连接Connection
 
 2、response.body().string() 为什么只能调用一次？
 因为在调用一次方法之后，会执行Util.closeQuietly(source);将流关闭，因此再次请求就会出现流关闭的异常

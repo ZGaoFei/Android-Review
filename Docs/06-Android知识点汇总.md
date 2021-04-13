@@ -237,7 +237,7 @@ IntentService：
 	内部是继承自Service，里面实现了HandlerThread，用HandlerThread来处理耗时操作，当处理完任务后，服务会stopSelf()，来关闭服务。内部只有一个线程，处理多任务时需要排队。默认是为了startService()实现的，onBind()方法里面返回null
 	官方文档上对IntentService 是这样描述的：
     1、IntentService 会创建一个线程，来处理所有传给onStartCommand()的Intent请求。
-    2、对于startService()请求执行onHandleIntent()中的耗时任务，会生成一个队列，每次只有一个Intent传入onHandleIntent()方法并执行。也就是同一时间只会有一个耗时任务被执行，其他的请求还要在后面排队， onHandleIntent()方法不会多线程并发执行。
+    2、对于startService()请求执行onHandleIntent()中的耗时任务，会生成一个队列，每次只有一个Intent传入onHandleIntent()方法并执行。也就是同一时间只会有一个耗时任务被执行，其他的请求还要在后面排队，onHandleIntent()方法不会多线程并发执行。
     3、当所有startService()请求被执行完成后，IntentService 会自动销毁，所以不需要自己写stopSelf()或stopService()来销毁服务。
     4、提供默认的onBind()实现 ，即返回null，不适合绑定的 Service。
     5、提供默认的 onStartCommand() 实现，将intent传入等待队列中，然后到onHandleIntent()的实现。所以如果需要重写onStartCommand() 方法一定要调用父类的实现。
@@ -817,6 +817,7 @@ public void draw(Canvas canvas) {
 - 托管绑定到可见（或前台）Activity 的 Service
 
 **3、服务进程**  
+
 - 正在运行已使用 startService() 方法启动的服务且不属于上述两个更高类别进程的进程。
 
 **4、后台进程**
@@ -2734,7 +2735,7 @@ public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
 ## Webview 加载优化
 - 使用本地资源替代
 
-可以 将一些资源文件放在本地的 asset s目录, 然后重 写WebViewClient 的 ``shouldInterceptRequest`` 方法，对访问地址进行拦截，当 url 地址命中本地配置的url时，使用本地资源替代，否则就使用网络上的资源。
+可以 将一些资源文件放在本地的 assets目录, 然后重写WebViewClient 的 ``shouldInterceptRequest`` 方法，对访问地址进行拦截，当 url 地址命中本地配置的url时，使用本地资源替代，否则就使用网络上的资源。
 
 ```java
 mWebview.setWebViewClient(new WebViewClient() {   

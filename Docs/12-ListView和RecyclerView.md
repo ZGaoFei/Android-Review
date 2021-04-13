@@ -38,7 +38,7 @@ Adapter
 Adapter：处理数据集合并负责绑定视图
 	1、根据不同ViewType创建与之相应的ItemLayout
 	2、访问数据集合并将数据绑定到正确的View上
-	在recyclerView.setAdapter()时，会调用adapter.registerAdapterDataObserver()，注册一个监听数据变化的观察者，当数据变化时会调用adapter.otifyItem***()，都会调用AdapterDataObservable.notifyChanged()，然后后调用RecyclerViewDataObserver.onChanged()，RecyclerViewDataObserver是AdapterDataObservable的实现者；RecyclerViewDataObserver.onChanged()中会调用requestLayout()进行刷新数据
+	在recyclerView.setAdapter()时，会调用adapter.registerAdapterDataObserver()，注册一个监听数据变化的观察者，当数据变化时会调用adapter.notifyItem***()，都会调用AdapterDataObservable.notifyChanged()，然后调用RecyclerViewDataObserver.onChanged()，RecyclerViewDataObserver是AdapterDataObservable的实现者；RecyclerViewDataObserver.onChanged()中会调用requestLayout()进行刷新数据
 	
 ViewHolder：持有所有的用于绑定数据或者需要操作的View
 	1、adapter应当拥有ViewHolder的子类，并且ViewHolder内部应当存储一些子view，避免时间代价很大的findViewById操作
@@ -109,8 +109,8 @@ SpanSizeLookup
 
 getViewForPosition()中获取viewholder的方式，通过几层获取？
 首先Recycler会先去检查mChangedScrap，如果匹配成功则返回相应的viewHolder。mChangedScrap就是所谓的detachedView，与RecyclerView分离的viewHolder列表。
-然后是mAttachedScrap，mViewCacheExtension，mRecyclerPool，如果都没有，则去创建，调用Adapter.createViewHolder()。
-mChangedScrap、mAttachedScrap、mRecyclerPool、前面都没有就去调用createViewHolder
+然后是mAttachedScrap，mCachedView，mViewCacheExtension，mRecyclerPool，如果都没有，则去创建，调用Adapter.createViewHolder()。
+mChangedScrap、mAttachedScrap、mCachedView、mViewCacheExtension、mRecyclerPool、前面都没有就去调用createViewHolder
 ```
 
 > RecyclerView卡顿的原因有哪些：
