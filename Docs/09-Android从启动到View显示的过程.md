@@ -114,3 +114,9 @@
 > 6、View里面的canvas是从哪来的？
 >
 > 在ViewRootImpl中，通过Surface对象调用mSurface.lockCanvas(dirty)获取的，传递给了view.draw(canvas)->view.onDraw(canvas)
+
+> 7、是否可以在子线程中更新UI？
+> 因为在ViewRootImpl.requestLayout()中checkThread()，如果不是在main线程中就会报错，因此只要我们在ViewRootImpl.requestLayout()调用之前刷新是不会报错。
+> 测试时发现在onCreate()/onStart()/onResume()中直接new Thread().start()在run中更新UI是可以的，因为ViewRootImpl.requestLayout()在onResume()之后调用的。
+> 因为第一次触发ViewRootImpl.requestLayout()是系统触发的，一定实在main线程中，当再次触发时，如果没有在main线程更新UI，就会报错了。
+> 因此是不推荐在非UI线程中更新UI
