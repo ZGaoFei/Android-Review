@@ -106,6 +106,7 @@
 Activity A 的onPause() → Activity B的onCreate() → onStart() → onResume() → Activity A的onStop()；如果B是透明主题又或则是个DialogActivity，则不会回调A的onStop；
 
 - 使用onSaveInstanceState（）保存简单，轻量级的UI状态
+- Activity的onDestory()方法可能不会被调用，1、直接后台杀死应用的时候，有可能会调用，有可能不会调用，2、崩溃导致退出时不会调用
 ```java
 lateinit var textView: TextView
 var gameState: String? = null
