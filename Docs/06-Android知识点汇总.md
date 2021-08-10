@@ -148,6 +148,12 @@ override fun onSaveInstanceState(outState: Bundle?) {
 ![](https://img-blog.csdn.net/20180427173504903)
 
 补充Activity的启动流程：[view.text](./view.text)
+
+> taskAffinity 使用
+> taskAffinity 一般与 allowTaskReparenting 一起使用，表示可以同在一个 task 中
+> taskAffinity 表示当前 activity 所在的 task，如果没有设置则从根 activity 中继承过来，如果根 activity 中也没有设置，则从 application 中继承来
+> 如果 application 中也没有，则默认为包名，如果设置了 taskAffinity，则相同 taskAffinity 设置的 activity 会被放入同一个 task 中。
+
 # Fragment
 ## 特点
 - Fragment 解决 Activity 间的切换不流畅，轻量切换
